@@ -301,8 +301,16 @@ export default function TrackingCapture() {
       }
 
       const { recordCapture } = await import("../utils/linkService");
-      await recordCapture(token, deviceData);
+      const result = await recordCapture(token, deviceData);
+
       setStatus("done");
+
+      // Redirect to the original destination after a brief delay
+      if (result?.destinationUrl) {
+        setTimeout(() => {
+          window.location.href = result.destinationUrl;
+        }, 1500);
+      }
     } catch (err) {
       setStatus("done");
     }

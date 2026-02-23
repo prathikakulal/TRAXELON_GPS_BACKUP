@@ -13,9 +13,10 @@ export default function Dashboard() {
   const { currentUser, userProfile, fetchUserProfile } = useAuth();
   const [links, setLinks] = useState([]);
   const [label, setLabel] = useState("");
+  const [destinationUrl, setDestinationUrl] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [success, setSuccess] = useState(null); // { shortUrl, trackingUrl }
   const [credits, setCredits] = useState(userProfile?.credits ?? 0);
   const [selectedLink, setSelectedLink] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
@@ -51,16 +52,22 @@ export default function Dashboard() {
       setShowPayment(true);
       return;
     }
+    if (!destinationUrl.trim()) {
+      setError("Please enter the destination URL to disguise.");
+      return;
+    }
     setGenerating(true);
     setError("");
-    setSuccess("");
+    setSuccess(null);
     try {
-      const { trackingUrl } = await createTrackingLink(
+      const result = await createTrackingLink(
         currentUser.uid,
-        label || "Tracking Link"
+        label || "Tracking Link",
+        destinationUrl.trim()
       );
-      setSuccess(trackingUrl);
+      setSuccess(result); // { token, trackingUrl, shortUrl }
       setLabel("");
+      setDestinationUrl("");
       await fetchUserProfile(currentUser.uid);
     } catch (err) {
       setError(err.message);
@@ -155,23 +162,56 @@ export default function Dashboard() {
               {success && (
                 <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 mb-4">
                   <p className="font-body text-xs text-primary mb-2 font-semibold">
-                    Link Generated!
+                    ✅ Tracking Link Ready!
                   </p>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-text-secondary truncate flex-1">
-                      {success}
+                  {/* Shortened Bitly link — share this */}
+                  <p className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">Short link to share</p>
+                  <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2 mb-2">
+                    <span className="font-mono text-sm text-primary truncate flex-1 font-bold">
+                      {success.shortUrl || success.trackingUrl}
                     </span>
                     <button
-                      onClick={() => copyToClipboard(success)}
+                      onClick={() => copyToClipboard(success.shortUrl || success.trackingUrl)}
                       className="text-primary hover:text-primary-dark flex-shrink-0"
+                      title="Copy short link"
                     >
                       <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {/* Raw tracking URL */}
+                  <p className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">Raw tracking URL</p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs text-text-muted truncate flex-1">
+                      {success.trackingUrl}
+                    </span>
+                    <button
+                      onClick={() => copyToClipboard(success.trackingUrl)}
+                      className="text-text-muted hover:text-primary flex-shrink-0"
+                      title="Copy raw URL"
+                    >
+                      <Copy className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
               )}
 
               <form onSubmit={handleGenerate} className="space-y-4">
+                <div>
+                  <label className="block font-body text-xs text-text-secondary uppercase tracking-wider mb-1.5">
+                    Destination URL <span className="text-accent">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={destinationUrl}
+                    onChange={(e) => setDestinationUrl(e.target.value)}
+                    placeholder="https://example.com/payment..."
+                    required
+                    className="w-full bg-surface border border-surface-border rounded-lg px-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-colors"
+                  />
+                  <p className="font-body text-xs text-text-muted mt-1">
+                    Suspect will be redirected here after capture
+                  </p>
+                </div>
                 <div>
                   <label className="block font-body text-xs text-text-secondary uppercase tracking-wider mb-1.5">
                     Case / Label (optional)
@@ -193,8 +233,8 @@ export default function Dashboard() {
                   {generating
                     ? "Generating..."
                     : credits > 0
-                    ? "Generate Link (1 credit)"
-                    : "No Credits - Buy Now"}
+                      ? "Generate Link (1 credit)"
+                      : "No Credits - Buy Now"}
                 </button>
               </form>
 
@@ -241,17 +281,16 @@ export default function Dashboard() {
                               {link.label}
                             </span>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-xs font-mono flex-shrink-0 ${
-                                link.active
+                              className={`px-2 py-0.5 rounded-full text-xs font-mono flex-shrink-0 ${link.active
                                   ? "bg-primary/10 text-primary"
                                   : "bg-text-muted/10 text-text-muted"
-                              }`}
+                                }`}
                             >
                               {link.active ? "ACTIVE" : "INACTIVE"}
                             </span>
                           </div>
                           <div className="font-mono text-xs text-text-muted truncate">
-                            {link.trackingUrl}
+                            {link.shortUrl || link.trackingUrl}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -265,9 +304,8 @@ export default function Dashboard() {
                             <Copy className="w-4 h-4" />
                           </button>
                           <ChevronRight
-                            className={`w-4 h-4 text-text-muted transition-transform ${
-                              selectedLink?.id === link.id ? "rotate-90" : ""
-                            }`}
+                            className={`w-4 h-4 text-text-muted transition-transform ${selectedLink?.id === link.id ? "rotate-90" : ""
+                              }`}
                           />
                         </div>
                       </div>
@@ -285,8 +323,8 @@ export default function Dashboard() {
                           <Clock className="w-3 h-3" />
                           {link.createdAt
                             ? new Date(
-                                link.createdAt.toMillis()
-                              ).toLocaleDateString()
+                              link.createdAt.toMillis()
+                            ).toLocaleDateString()
                             : "-"}
                         </span>
                       </div>
@@ -439,11 +477,10 @@ function PaymentModal({ onClose, uid, fetchUserProfile }) {
                 <button
                   key={i}
                   onClick={() => setSelected(i)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all ${
-                    selected === i
+                  className={`w-full text-left p-4 rounded-xl border transition-all ${selected === i
                       ? "border-primary bg-primary/10 shadow-glow"
                       : "border-surface-border bg-surface hover:border-primary/40"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
