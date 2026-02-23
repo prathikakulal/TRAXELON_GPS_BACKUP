@@ -41,5 +41,7 @@ app.use((err, req, res, next) => {
 // ── Start ────────────────────────────────────────────────────
 app.listen(PORT, () => {
     console.log(`\n🚀 Traxalon backend running on http://localhost:${PORT}`);
-    console.log(`   Bitly token: ${process.env.BITLY_API_TOKEN ? "✅ Set" : "⚠️  Not set (fallback mode)"}\n`);
+    const bitlyToken = process.env.BITLY_API_TOKEN;
+    const bitlyReady = bitlyToken && bitlyToken !== "YOUR_BITLY_ACCESS_TOKEN_HERE";
+    console.log(`   Bitly token: ${bitlyReady ? "✅ Set" : "⚠️  NOT SET — add real token to backend/.env"}\n`);
 });
