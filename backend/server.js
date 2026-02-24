@@ -41,10 +41,21 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ────────────────────────────────────────────────────
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`\n🚀 Traxalon backend running on http://localhost:${PORT}`);
     console.log(`   LAN access:   http://192.168.10.1:${PORT}`);
     const bitlyToken = process.env.BITLY_API_TOKEN;
     const bitlyReady = bitlyToken && bitlyToken !== "YOUR_BITLY_ACCESS_TOKEN_HERE";
     console.log(`   Bitly token: ${bitlyReady ? "✅ Set" : "⚠️  NOT SET — add real token to backend/.env"}\n`);
+});
+
+server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+        console.error(`\n❌ Port ${PORT} is already in use!`);
+        console.error(`   Run this to fix it:  taskkill /F /IM node.exe`);
+        console.error(`   Then run:            npm start\n`);
+        process.exit(1);
+    } else {
+        throw err;
+    }
 });

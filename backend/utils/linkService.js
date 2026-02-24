@@ -29,6 +29,14 @@ export async function shortenWithBitly(longUrl) {
         console.warn("[Bitly] No token set — returning original URL as fallback.");
         return longUrl;
     }
+
+    // Bitly cannot shorten localhost or private network URLs
+    const isPrivate = /^https?:\/\/(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(longUrl);
+    if (isPrivate) {
+        console.info("[Bitly] Skipping — private/local URL can't be shortened:", longUrl);
+        return longUrl;
+    }
+
     try {
         const response = await axios.post(
             "https://api-ssl.bitly.com/v4/shorten",

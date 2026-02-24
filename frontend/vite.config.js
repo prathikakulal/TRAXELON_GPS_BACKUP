@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: true,   // expose on LAN so phone can access it
     open: true,
   },
   build: {
