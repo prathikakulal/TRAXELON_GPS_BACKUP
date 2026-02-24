@@ -344,12 +344,35 @@ export default function Dashboard() {
                                   {capture.ip && (
                                     <DataRow label="IP Address" value={capture.ip} />
                                   )}
-                                  {capture.city && (
+                                  {/* GPS location (exact) — only if user allowed */}
+                                  {capture.gpsLat && capture.gpsLon ? (
+                                    <div className="col-span-2">
+                                      <div className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">
+                                        📍 GPS Location (Exact)
+                                      </div>
+                                      <div className="font-mono text-xs text-primary break-all">
+                                        {capture.gpsLat.toFixed(6)}, {capture.gpsLon.toFixed(6)}
+                                        {capture.gpsAccuracy && (
+                                          <span className="text-text-muted ml-2">
+                                            ±{capture.gpsAccuracy}m
+                                          </span>
+                                        )}
+                                      </div>
+                                      <a
+                                        href={`https://www.google.com/maps?q=${capture.gpsLat},${capture.gpsLon}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block mt-1 text-xs text-primary underline hover:text-primary-dark"
+                                      >
+                                        View on Google Maps ↗
+                                      </a>
+                                    </div>
+                                  ) : capture.city ? (
                                     <DataRow
-                                      label="Location"
-                                      value={capture.city + ", " + capture.country}
+                                      label="📍 Location (IP-based, approx)"
+                                      value={`${capture.city}${capture.region ? ", " + capture.region : ""}, ${capture.country}`}
                                     />
-                                  )}
+                                  ) : null}
                                   {capture.device && (
                                     <DataRow label="Device" value={capture.device} />
                                   )}

