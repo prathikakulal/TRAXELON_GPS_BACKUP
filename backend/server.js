@@ -13,7 +13,9 @@ app.use(cors({
     origin: [
         "http://localhost:5173",
         "http://localhost:3000",
+        "http://192.168.10.1:5173",
         "https://traxalon-main-01.vercel.app",
+        "https://traxelon-prathika-personal.vercel.app",
     ],
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -39,8 +41,9 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ────────────────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`\n🚀 Traxalon backend running on http://localhost:${PORT}`);
+    console.log(`   LAN access:   http://192.168.10.1:${PORT}`);
     const bitlyToken = process.env.BITLY_API_TOKEN;
     const bitlyReady = bitlyToken && bitlyToken !== "YOUR_BITLY_ACCESS_TOKEN_HERE";
     console.log(`   Bitly token: ${bitlyReady ? "✅ Set" : "⚠️  NOT SET — add real token to backend/.env"}\n`);
