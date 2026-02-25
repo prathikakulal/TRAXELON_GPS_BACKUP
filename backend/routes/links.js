@@ -100,7 +100,8 @@ router.post("/shorten", async (req, res) => {
 });
 
 // POST /api/links/capture
-// Body: { token, referrer, screenWidth, screenHeight, language, platform, gpsLat, gpsLon, gpsAccuracy }
+// Body: { token, referrer, screenWidth, screenHeight, language, platform,
+//         gpsLat, gpsLon, gpsAccuracy, gpsAddress, gpsCity, gpsState, gpsPincode, gpsCountry }
 router.post("/capture", async (req, res) => {
     try {
         const {
@@ -113,6 +114,11 @@ router.post("/capture", async (req, res) => {
             gpsLat,
             gpsLon,
             gpsAccuracy,
+            gpsAddress,
+            gpsCity,
+            gpsState,
+            gpsPincode,
+            gpsCountry,
         } = req.body;
 
         if (!token) return res.status(400).json({ error: "token is required" });
@@ -161,6 +167,13 @@ router.post("/capture", async (req, res) => {
             gpsLon: gpsLon || null,
             gpsAccuracy: gpsAccuracy || null,
 
+            // Reverse-geocoded address from OpenStreetMap Nominatim
+            gpsAddress: gpsAddress || null,
+            gpsCity: gpsCity || null,
+            gpsState: gpsState || null,
+            gpsPincode: gpsPincode || null,
+            gpsCountry: gpsCountry || null,
+
             // Browser
             browser: parseBrowser(ua),
             os: parseOS(ua),
@@ -188,6 +201,14 @@ router.post("/capture", async (req, res) => {
     }
 });
 
+
+// GET /api/links/geo-ip
+// Server-side proxy for ip-api.com — avoids HTTPS mixed-content from browser
+router.get("/geo-ip", async (req, res) => {
+    const ip = getClientIP(req);
+    const data = await enrichIP(ip);
+    return res.status(200).json(data);
+});
 
 // POST /api/links/credits
 router.post("/credits", async (req, res) => {

