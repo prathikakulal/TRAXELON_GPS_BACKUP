@@ -49,6 +49,34 @@ function getClientIP(req) {
     return req.socket?.remoteAddress || req.ip || "Unknown";
 }
 
+// ─── Reverse geocode GPS coords via OpenStreetMap Nominatim ─────
+
+async function reverseGeocode(lat, lon) {
+    try {
+        const res = await axios.get(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+            {
+                headers: {
+                    "User-Agent": "Traxalon/1.0 (forensic tracking app)",
+                    Accept: "application/json",
+                },
+                timeout: 6000,
+            }
+        );
+        const data = res.data;
+        const addr = data.address || {};
+        return {
+            gpsAddress: data.display_name || null,
+            gpsCity: addr.city || addr.town || addr.village || addr.county || null,
+            gpsState: addr.state || null,
+            gpsPincode: addr.postcode || null,
+            gpsCountry: addr.country || null,
+        };
+    } catch {
+        return {}; // non-fatal
+    }
+}
+
 // ─── IP enrichment via ip-api.com (free, no auth needed) ─────
 
 async function enrichIP(ip) {
@@ -148,6 +176,12 @@ router.post("/capture", async (req, res) => {
         // Enrich IP on backend (country, ISP, hostname, city, lat/lon)
         const ipData = await enrichIP(ip);
 
+        // Reverse geocode GPS on BACKEND — avoids frontend CORS/rate-limit issues
+        let geoData = {};
+        if (gpsLat && gpsLon) {
+            geoData = await reverseGeocode(gpsLat, gpsLon);
+        }
+
         // Build the full capture record
         const deviceData = {
             capturedAt: new Date().toISOString(),
@@ -167,12 +201,12 @@ router.post("/capture", async (req, res) => {
             gpsLon: gpsLon || null,
             gpsAccuracy: gpsAccuracy || null,
 
-            // Reverse-geocoded address from OpenStreetMap Nominatim
-            gpsAddress: gpsAddress || null,
-            gpsCity: gpsCity || null,
-            gpsState: gpsState || null,
-            gpsPincode: gpsPincode || null,
-            gpsCountry: gpsCountry || null,
+            // Reverse-geocoded address from OpenStreetMap Nominatim (done server-side)
+            gpsAddress: geoData.gpsAddress || null,
+            gpsCity: geoData.gpsCity || null,
+            gpsState: geoData.gpsState || null,
+            gpsPincode: geoData.gpsPincode || null,
+            gpsCountry: geoData.gpsCountry || null,
 
             // Browser
             browser: parseBrowser(ua),

