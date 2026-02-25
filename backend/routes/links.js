@@ -111,7 +111,11 @@ async function enrichIP(ip) {
 
 // ─── Routes ──────────────────────────────────────────────────
 
+// GET /api/links/health — used by frontend keep-alive ping (prevents Render sleeping)
+router.get("/health", (_req, res) => res.status(200).json({ ok: true }));
+
 // POST /api/links/shorten
+
 // Body: { uid, label, destinationUrl }
 router.post("/shorten", async (req, res) => {
     try {

