@@ -34,8 +34,8 @@ export default function Contact() {
                 GET IN <span className="text-primary">TOUCH</span>
               </h3>
               {[
-                { icon: <Mail className="w-5 h-5" />, label: "Email", value: "support@traxalon.gov.in" },
-                { icon: <Phone className="w-5 h-5" />, label: "Hotline", value: "+91 1800-TRAXALON" },
+                { icon: <Mail className="w-5 h-5" />, label: "Email", value: "support@traxelon.gov.in" },
+                { icon: <Phone className="w-5 h-5" />, label: "Hotline", value: "+91 1800-TRAXELON" },
                 { icon: <MapPin className="w-5 h-5" />, label: "Office", value: "Cyber Crime Bureau, New Delhi" },
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">

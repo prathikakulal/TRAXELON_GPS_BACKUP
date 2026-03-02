@@ -218,7 +218,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
             <span className="font-display text-lg tracking-widest text-text-primary">
-              TRAX<span className="text-primary">ALON</span>
+              TRAX<span className="text-primary">ELON</span>
             </span>
           </div>
           <p className="font-body text-xs text-text-muted">
