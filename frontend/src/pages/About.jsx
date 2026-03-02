@@ -3,9 +3,9 @@ import { Shield, Target, Lock, Users } from "lucide-react";
 
 export default function About() {
   const team = [
-    { name: "Shreya", role: "Lead Developer", dept: "Cyber Crime Division" },
-    { name: "Shreya", role: "Intelligence Analyst", dept: "Digital Forensics" },
-    { name: "Shreya", role: "Security Architect", dept: "Network Security" },
+    { name: "", role: "Lead Developer", dept: "Cyber Crime Division" },
+    { name: "", role: "Intelligence Analyst", dept: "Digital Forensics" },
+    { name: "", role: "Security Architect", dept: "Network Security" },
   ];
 
   return (
@@ -19,7 +19,7 @@ export default function About() {
             ABOUT <span className="text-primary">US</span>
           </h1>
           <p className="font-body text-lg text-text-secondary max-w-2xl mx-auto leading-relaxed">
-            Traxalon is a specialized intelligence platform built for law enforcement agencies
+            Traxelon is a specialized intelligence platform built for Law enforcement agencies
             to conduct covert digital surveillance operations with precision and legality.
           </p>
         </div>
@@ -43,7 +43,7 @@ export default function About() {
         <div className="bg-surface-elevated border border-accent/20 rounded-2xl p-6 mb-16">
           <h3 className="font-display text-xl text-accent tracking-wide mb-3">⚠️ Legal Notice</h3>
           <p className="font-body text-sm text-text-secondary leading-relaxed">
-            Traxalon is intended solely for use by authorized law enforcement personnel in the
+            Traxelon is intended solely for use by authorized law enforcement personnel in the
             performance of official duties. Unauthorized use of this tool to track individuals
             without proper legal authorization constitutes a violation of the IT Act 2000,
             Section 66 (Computer Related Offences) and may result in criminal prosecution.
