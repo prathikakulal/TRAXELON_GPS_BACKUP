@@ -66,6 +66,13 @@ export default function Dashboard() {
       setError("Please enter the destination URL to disguise.");
       return;
     }
+
+    // Auto-prepend https:// if missing
+    let finalUrl = destinationUrl.trim();
+    if (!/^https?:\/\//i.test(finalUrl)) {
+      finalUrl = `https://${finalUrl}`;
+    }
+
     setGenerating(true);
     setError("");
     setSuccess(null);
@@ -73,7 +80,7 @@ export default function Dashboard() {
       const result = await createTrackingLink(
         currentUser.uid,
         label || "Tracking Link",
-        destinationUrl.trim()
+        finalUrl
       );
       setSuccess(result); // { token, trackingUrl, shortUrl }
       setLabel("");
@@ -209,10 +216,10 @@ export default function Dashboard() {
                     URL to Shorten <span className="text-accent">*</span>
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     value={destinationUrl}
                     onChange={(e) => setDestinationUrl(e.target.value)}
-                    placeholder="https://paytm.com/"
+                    placeholder="https://paytm.com/ or paytm.com"
                     required
                     className="w-full bg-surface border border-surface-border rounded-lg px-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-colors"
                   />
