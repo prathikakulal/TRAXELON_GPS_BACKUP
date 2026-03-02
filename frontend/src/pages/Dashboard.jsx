@@ -9,7 +9,7 @@ import {
   Globe, Eye, CreditCard, X
 } from "lucide-react";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "";
+const BACKEND_URL = import.meta.env.PROD ? "" : "http://localhost:5001";
 
 export default function Dashboard() {
   const { currentUser, userProfile, fetchUserProfile } = useAuth();

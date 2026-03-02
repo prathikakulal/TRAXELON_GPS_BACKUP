@@ -9,7 +9,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "";
+const BACKEND_URL = import.meta.env.PROD ? "" : "http://localhost:5001";
 
 
 /**
