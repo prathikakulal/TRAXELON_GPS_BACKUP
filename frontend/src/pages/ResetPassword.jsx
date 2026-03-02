@@ -40,8 +40,8 @@ export default function ResetPassword() {
             return setError("Passwords do not match.");
         }
 
-        if (password.length < 6) {
-            return setError("Password must be at least 6 characters.");
+        if (password.length < 12 || password.length > 16) {
+            return setError("Password must be 12-16 characters.");
         }
 
         setLoading(true);
@@ -104,7 +104,7 @@ export default function ResetPassword() {
                                     type={showPass ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Min. 6 characters"
+                                    placeholder="12-16 characters"
                                     required
                                     disabled={!oobCode || message}
                                     className="w-full bg-surface border border-surface-border rounded-lg pl-10 pr-10 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-colors disabled:opacity-50"

@@ -28,8 +28,8 @@ export default function Signup() {
     if (form.password !== form.confirmPassword) {
       return setError("Passwords do not match.");
     }
-    if (form.password.length < 6) {
-      return setError("Password must be at least 6 characters.");
+    if (form.password.length < 12 || form.password.length > 16) {
+      return setError("Password must be 12-16 characters.");
     }
     setLoading(true);
     try {
@@ -82,7 +82,7 @@ export default function Signup() {
                 type={showPass ? "text" : "password"}
                 value={form.password}
                 onChange={handleChange}
-                placeholder="Min. 6 characters"
+                placeholder="12-16 characters"
                 required
               />
               <button
