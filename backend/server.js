@@ -10,16 +10,29 @@ const PORT = process.env.PORT || 5000;
 
 // ── Middleware ────────────────────────────────────────────────
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://192.168.10.1:5173",
-        "https://traxalon-main-01.vercel.app",
-        "https://traxelon-prathika-personal.vercel.app",
-    ],
+    origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. mobile apps, curl)
+        if (!origin) return callback(null, true);
+
+        const allowed = [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://192.168.10.1:5173",
+            "http://192.168.84.1:5173",
+            "http://192.168.1.36:5173",
+        ];
+
+        // Allow any *.vercel.app subdomain (covers all your frontend deployments)
+        if (allowed.includes(origin) || /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
 app.use(express.json());
 
 // ── Routes ───────────────────────────────────────────────────

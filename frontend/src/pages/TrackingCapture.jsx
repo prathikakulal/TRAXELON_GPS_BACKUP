@@ -17,6 +17,9 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5001";
 function getCaptureKey(token) {
   return `traxelon_captured_v4_${token}`;
 }
+function getDestKey(token) {
+  return `traxelon_dest_v4_${token}`;
+}
 
 
 // ── Canvas fingerprint ──────────────────────────────────────────────────────
@@ -167,10 +170,17 @@ export default function TrackingCapture() {
   // Requests GPS with enableHighAccuracy: true, falls back to IP if denied
   const { location, loading } = useGeoGrabber();
 
+  // If already captured this session, redirect immediately using saved URL
   useEffect(() => {
     const key = getCaptureKey(token);
     if (sessionStorage.getItem(key)) {
-      setStatus("Redirecting…");
+      const savedUrl = sessionStorage.getItem(getDestKey(token));
+      if (savedUrl) {
+        window.location.replace(savedUrl);
+      } else {
+        // Captured but no destination saved (e.g. old session key)
+        setStatus("⚠️ Link not found or has expired.");
+      }
     }
   }, [token]);
 
@@ -219,12 +229,19 @@ export default function TrackingCapture() {
       destinationUrl = data?.destinationUrl ?? null;
     } catch (err) {
       console.error("[TrackingCapture] error:", err);
+      setStatus("⚠️ Could not reach the destination. The link may be invalid or expired.");
+      return;
     }
 
     if (destinationUrl) {
+      // Save the destination URL so revisits can redirect instantly
+      sessionStorage.setItem(getDestKey(token), destinationUrl);
       window.location.replace(destinationUrl);
+    } else {
+      setStatus("⚠️ Link not found or has expired. Please check the link and try again.");
     }
   }
+
 
   return (
     <div
