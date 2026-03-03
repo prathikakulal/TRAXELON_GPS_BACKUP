@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Shield, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import PasswordStrength from "../components/PasswordStrength";
+import { analyzePassword, MIN_SCORE } from "../utils/passwordStrength";
 
 export default function ResetPassword() {
     const { confirmReset } = useAuth();
@@ -16,8 +18,10 @@ export default function ResetPassword() {
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
+    // Derived — recalculated on every render with new password value
+    const passwordStrength = analyzePassword(password);
+
     useEffect(() => {
-        // Get the oobCode from the URL query parameters
         const queryParams = new URLSearchParams(location.search);
         const code = queryParams.get("oobCode");
         if (code) {
@@ -35,20 +39,20 @@ export default function ResetPassword() {
         if (!oobCode) {
             return setError("Invalid reset link. Please request a new one.");
         }
-
         if (password !== confirmPassword) {
             return setError("Passwords do not match.");
         }
-
         if (password.length < 12 || password.length > 16) {
             return setError("Password must be 12-16 characters.");
+        }
+        if (passwordStrength.score < MIN_SCORE) {
+            return setError("Password is too weak. Please choose a stronger password (Good or better).");
         }
 
         setLoading(true);
         try {
             await confirmReset(oobCode, password);
             setMessage("Password has been reset successfully. You can now log in.");
-            // Redirect to login after a short delay
             setTimeout(() => {
                 navigate("/login");
             }, 3000);
@@ -60,6 +64,12 @@ export default function ResetPassword() {
         }
         setLoading(false);
     }
+
+    const submitDisabled =
+        loading ||
+        !oobCode ||
+        !!message ||
+        (password.length > 0 && passwordStrength.score < MIN_SCORE);
 
     return (
         <div className="min-h-screen bg-surface flex items-center justify-center px-4 pt-16 pb-8">
@@ -92,7 +102,8 @@ export default function ResetPassword() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="relative">
+                        {/* New Password */}
+                        <div>
                             <label className="block font-body text-xs text-text-secondary uppercase tracking-wider mb-1.5">
                                 New Password
                             </label>
@@ -106,13 +117,13 @@ export default function ResetPassword() {
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="12-16 characters"
                                     required
-                                    disabled={!oobCode || message}
+                                    disabled={!oobCode || !!message}
                                     className="w-full bg-surface border border-surface-border rounded-lg pl-10 pr-10 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPass(!showPass)}
-                                    disabled={!oobCode || message}
+                                    disabled={!oobCode || !!message}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary disabled:opacity-50"
                                 >
                                     {showPass ? (
@@ -122,9 +133,12 @@ export default function ResetPassword() {
                                     )}
                                 </button>
                             </div>
+                            {/* Strength meter */}
+                            <PasswordStrength password={password} />
                         </div>
 
-                        <div className="relative">
+                        {/* Confirm New Password */}
+                        <div>
                             <label className="block font-body text-xs text-text-secondary uppercase tracking-wider mb-1.5">
                                 Confirm New Password
                             </label>
@@ -138,7 +152,7 @@ export default function ResetPassword() {
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     placeholder="Repeat new password"
                                     required
-                                    disabled={!oobCode || message}
+                                    disabled={!oobCode || !!message}
                                     className="w-full bg-surface border border-surface-border rounded-lg pl-10 pr-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
                                 />
                             </div>
@@ -146,7 +160,7 @@ export default function ResetPassword() {
 
                         <button
                             type="submit"
-                            disabled={loading || !oobCode || message}
+                            disabled={submitDisabled}
                             className="w-full mt-6 px-6 py-3.5 bg-primary text-surface font-body font-bold rounded-lg hover:bg-primary-dark transition-all shadow-glow hover:shadow-glow-strong disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? "Resetting..." : "Reset Password"}

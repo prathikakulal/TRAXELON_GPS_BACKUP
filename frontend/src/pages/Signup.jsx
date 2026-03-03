@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Shield, User, Mail, Lock, BadgeCheck, Building2, Eye, EyeOff } from "lucide-react";
+import PasswordStrength from "../components/PasswordStrength";
+import { analyzePassword, MIN_SCORE } from "../utils/passwordStrength";
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -18,6 +20,9 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
+  // Derived — no extra state needed
+  const passwordStrength = analyzePassword(form.password);
+
   function handleChange(e) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
   }
@@ -25,12 +30,17 @@ export default function Signup() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+
     if (form.password !== form.confirmPassword) {
       return setError("Passwords do not match.");
     }
     if (form.password.length < 12 || form.password.length > 16) {
       return setError("Password must be 12-16 characters.");
     }
+    if (passwordStrength.score < MIN_SCORE) {
+      return setError("Password is too weak. Please choose a stronger password (Good or better).");
+    }
+
     setLoading(true);
     try {
       await signup(form.email, form.password, form.displayName, form.badgeId, form.department);
@@ -40,6 +50,8 @@ export default function Signup() {
     }
     setLoading(false);
   }
+
+  const submitDisabled = loading || (form.password.length > 0 && passwordStrength.score < MIN_SCORE);
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center px-4 pt-16 pb-8">
@@ -74,30 +86,37 @@ export default function Signup() {
             </div>
             <InputField icon={<Building2 />} label="Department" name="department" value={form.department} onChange={handleChange} placeholder="Cyber Crime Division" required />
             <InputField icon={<Mail />} label="Official Email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="officer@police.gov.in" required />
-            <div className="relative">
-              <InputField
-                icon={<Lock />}
-                label="Password"
-                name="password"
-                type={showPass ? "text" : "password"}
-                value={form.password}
-                onChange={handleChange}
-                placeholder="12-16 characters"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(!showPass)}
-                className="absolute right-3 top-9 text-text-muted hover:text-primary"
-              >
-                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+
+            {/* Password field with eye toggle */}
+            <div>
+              <div className="relative">
+                <InputField
+                  icon={<Lock />}
+                  label="Password"
+                  name="password"
+                  type={showPass ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="12-16 characters"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-9 text-text-muted hover:text-primary"
+                >
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {/* Strength meter rendered below the password input */}
+              <PasswordStrength password={form.password} />
             </div>
+
             <InputField icon={<Lock />} label="Confirm Password" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} placeholder="Repeat password" required />
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitDisabled}
               className="w-full mt-2 px-6 py-3.5 bg-primary text-surface font-body font-bold rounded-lg hover:bg-primary-dark transition-all shadow-glow hover:shadow-glow-strong disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating Account..." : "Create Officer Account"}
